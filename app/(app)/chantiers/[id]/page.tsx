@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Edit, MapPin, Calendar, Users, Package, TrendingUp } from 'lucide-react'
 import { formatDate, formatCurrency, getStatutChantierColor, getStatutChantierLabel } from '@/lib/utils'
+import ChantierMap from './ChantierMap'
 
 export default async function ChantierDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -196,6 +197,16 @@ export default async function ChantierDetailPage({ params }: { params: { id: str
               )}
             </div>
           </div>
+
+          {/* Map */}
+          <ChantierMap
+            chantierId={params.id}
+            adresse={chantier.adresse}
+            codePostal={chantier.code_postal}
+            ville={chantier.ville}
+            initialLat={chantier.latitude}
+            initialLng={chantier.longitude}
+          />
 
           {/* Photos */}
           {photos && photos.length > 0 && (
