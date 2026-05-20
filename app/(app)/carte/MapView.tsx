@@ -1,5 +1,6 @@
 'use client'
 
+import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { MapPin, ExternalLink } from 'lucide-react'
@@ -49,9 +50,7 @@ export default function MapView({ chantiers }: { chantiers: Chantier[] }) {
     let map: any
 
     async function init() {
-      // Dynamic import to avoid SSR issues
       L = (await import('leaflet')).default
-      await import('leaflet/dist/leaflet.css')
 
       // Fix default marker icon paths broken by webpack
       delete (L.Icon.Default.prototype as any)._getIconUrl

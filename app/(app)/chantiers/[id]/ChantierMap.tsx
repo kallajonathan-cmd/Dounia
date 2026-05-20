@@ -1,5 +1,6 @@
 'use client'
 
+import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { MapPin, Search, Trash2, CheckCircle, AlertCircle, Loader2, MousePointer } from 'lucide-react'
 
@@ -133,7 +134,6 @@ export default function ChantierMap({
 
     async function init() {
       const L = (await import('leaflet')).default
-      await import('leaflet/dist/leaflet.css')
       LRef.current = L
 
       delete (L.Icon.Default.prototype as any)._getIconUrl
