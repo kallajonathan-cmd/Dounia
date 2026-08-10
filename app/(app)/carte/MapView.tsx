@@ -1,10 +1,8 @@
 'use client'
 
-import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { MapPin, ExternalLink } from 'lucide-react'
-import { getStatutChantierLabel } from '@/lib/utils'
+import { MapPin } from 'lucide-react'
 
 interface Chantier {
   id: string
@@ -37,22 +35,19 @@ function getStatutDot(statut: string) {
 export default function MapView({ chantiers }: { chantiers: Chantier[] }) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
-  const [selected, setSelected] = useState<string | null>(null)
 
   const withCoords = chantiers.filter(c => c.latitude && c.longitude)
   const withoutCoords = chantiers.filter(c => !c.latitude || !c.longitude)
 
   useEffect(() => {
     if (typeof window === 'undefined' || !mapRef.current) return
-    if (mapInstanceRef.current) return // already initialized
+    if (mapInstanceRef.current) return
 
-    let L: any
     let map: any
 
     async function init() {
-      L = (await import('leaflet')).default
+      const L = (await import('leaflet')).default
 
-      // Fix default marker icon paths broken by webpack
       delete (L.Icon.Default.prototype as any)._getIconUrl
       L.Icon.Default.mergeOptions({
         iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -60,7 +55,6 @@ export default function MapView({ chantiers }: { chantiers: Chantier[] }) {
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       })
 
-      // Center on France by default, or fit to markers if any
       const center: [number, number] = withCoords.length > 0
         ? [withCoords[0].latitude!, withCoords[0].longitude!]
         : [46.5, 2.5]
@@ -74,11 +68,9 @@ export default function MapView({ chantiers }: { chantiers: Chantier[] }) {
         maxZoom: 19,
       }).addTo(map)
 
-      // Add markers for each chantier with coordinates
       withCoords.forEach(c => {
         const color = getStatutColor(c.statut)
 
-        // Custom colored circle marker
         const markerHtml = `
           <div style="
             width: 32px; height: 32px;
@@ -129,7 +121,6 @@ export default function MapView({ chantiers }: { chantiers: Chantier[] }) {
           .bindPopup(popupContent, { maxWidth: 260 })
       })
 
-      // Fit bounds if multiple markers
       if (withCoords.length > 1) {
         const bounds = L.latLngBounds(withCoords.map(c => [c.latitude!, c.longitude!]))
         map.fitBounds(bounds, { padding: [40, 40] })
@@ -148,7 +139,6 @@ export default function MapView({ chantiers }: { chantiers: Chantier[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Map header */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
@@ -158,7 +148,6 @@ export default function MapView({ chantiers }: { chantiers: Chantier[] }) {
               {withoutCoords.length > 0 && ` · ${withoutCoords.length} sans coordonnées GPS`}
             </p>
           </div>
-          {/* Legend */}
           <div className="flex items-center gap-4 text-sm">
             {Object.entries(STATUT_CONFIG).filter(([k]) => ['en_cours','planifie','pause','termine'].includes(k)).map(([key, cfg]) => (
               <div key={key} className="flex items-center gap-1.5">
@@ -168,12 +157,9 @@ export default function MapView({ chantiers }: { chantiers: Chantier[] }) {
             ))}
           </div>
         </div>
-
-        {/* Map container */}
-        <div ref={mapRef} className="h-[500px] w-full z-0" />
+        <div ref={mapRef} style={{ height: '500px', width: '100%' }} />
       </div>
 
-      {/* Chantiers list */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {chantiers.map((c) => (
           <Link
