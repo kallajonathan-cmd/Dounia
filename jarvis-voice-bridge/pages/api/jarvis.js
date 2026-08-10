@@ -1,7 +1,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { google } = require('googleapis');
-const { googleAuthClient } = require('./_google');
-const SYSTEM_PROMPT = require('./_system-prompt');
+const { googleAuthClient } = require('../../lib/google');
+const SYSTEM_PROMPT = require('../../lib/system-prompt');
 
 const tools = [
   {

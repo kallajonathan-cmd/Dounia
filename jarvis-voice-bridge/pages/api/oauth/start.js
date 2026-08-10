@@ -1,5 +1,5 @@
 const { google } = require('googleapis');
-const { redirectUri } = require('../_google');
+const { redirectUri } = require('../../../lib/google');
 
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar',

@@ -1,5 +1,5 @@
 const { google } = require('googleapis');
-const { redirectUri } = require('../_google');
+const { redirectUri } = require('../../../lib/google');
 
 module.exports = async (req, res) => {
   const code = req.query.code;
@@ -17,8 +17,8 @@ module.exports = async (req, res) => {
   try {
     const { tokens } = await client.getToken(code);
     // Shown once, never stored server-side: copy refresh_token into the
-    // GOOGLE_REFRESH_TOKEN env var on Vercel, then delete/rotate if this
-    // page is ever exposed publicly.
+    // GOOGLE_REFRESH_TOKEN env var on Vercel, then rotate if this page is
+    // ever exposed publicly.
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.status(200).send(
       tokens.refresh_token
