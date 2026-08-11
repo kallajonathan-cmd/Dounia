@@ -3,8 +3,10 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Trash2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Loader2, Mic, MicOff, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useSpeechDictation } from '@/lib/useSpeechDictation'
+import { cn } from '@/lib/utils'
 
 interface Ligne {
   position: number
@@ -41,6 +43,9 @@ function NouveauDevisForm() {
   const [lignes, setLignes] = useState<Ligne[]>([
     { position: 1, type: 'prestation', designation: '', description: '', unite: 'forfait', quantite: 1, prix_unitaire_ht: 0, taux_tva: 20, montant_ht: 0 },
   ])
+  const [generating, setGenerating] = useState(false)
+  const [genError, setGenError] = useState('')
+  const dictation = useSpeechDictation()
 
   useEffect(() => {
     const loadClients = async () => {
@@ -71,6 +76,47 @@ function NouveauDevisForm() {
 
   const removeLigne = (index: number) => {
     setLignes(lignes.filter((_, i) => i !== index))
+  }
+
+  const handleGenerate = async () => {
+    if (!dictation.transcript.trim()) return
+    if (dictation.listening) dictation.stop()
+    setGenerating(true)
+    setGenError('')
+    try {
+      const res = await fetch('/api/devis/generate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ description: dictation.transcript }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erreur lors de la génération')
+
+      const generees: Ligne[] = data.devis.lignes.map((l: any, i: number) => ({
+        position: i + 1,
+        type: l.type,
+        designation: l.designation,
+        description: l.description || '',
+        unite: l.unite,
+        quantite: l.quantite,
+        prix_unitaire_ht: l.prix_unitaire_ht,
+        taux_tva: l.taux_tva,
+        montant_ht: l.montant_ht,
+      }))
+
+      setLignes(generees)
+      setFormData((prev) => ({
+        ...prev,
+        objet: prev.objet || data.devis.objet,
+        type_travaux: prev.type_travaux || data.devis.type_travaux,
+        description: dictation.transcript,
+        taux_tva: data.devis.taux_tva,
+      }))
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : 'Erreur lors de la génération')
+    } finally {
+      setGenerating(false)
+    }
   }
 
   const montantHT = lignes.filter(l => l.type !== 'section').reduce((s, l) => s + l.montant_ht, 0)
@@ -129,6 +175,35 @@ function NouveauDevisForm() {
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
         )}
+
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900">Description vocale des travaux</h2>
+            {dictation.supported ? (
+              <button type="button" onClick={() => (dictation.listening ? dictation.stop() : dictation.start())}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  dictation.listening ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' : 'bg-orange-500 hover:bg-orange-600 text-white'
+                )}>
+                {dictation.listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {dictation.listening ? 'Arrêter la dictée' : 'Dicter les travaux'}
+              </button>
+            ) : (
+              <span className="text-xs text-gray-400">Dictée non supportée par ce navigateur (utilisez Chrome ou Edge)</span>
+            )}
+          </div>
+          <textarea rows={4} value={dictation.transcript} onChange={(e) => dictation.setTranscript(e.target.value)}
+            placeholder="Décrivez les travaux à l'oral (bouton ci-dessus) ou saisissez-les ici : « Rénovation salle de bain, dépose de l'ancien carrelage 15 m², pose de carrelage neuf, remplacement de la baignoire par une douche italienne... »"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+          {genError && <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{genError}</div>}
+          <div className="flex justify-end">
+            <button type="button" onClick={handleGenerate} disabled={generating || !dictation.transcript.trim()}
+              className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              Générer les lignes du devis
+            </button>
+          </div>
+        </div>
 
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Informations générales</h2>
